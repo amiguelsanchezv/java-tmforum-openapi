@@ -1,0 +1,208 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tmforum-openapi
+  namespace: tmforum-openapi
+  labels:
+    app: tmforum-openapi
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: tmforum-openapi
+  template:
+    metadata:
+      labels:
+        app: tmforum-openapi
+    spec:
+      containers:
+      - name: tmforum-openapi
+        image: tmforum-openapi:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        # Server configuration
+        - name: SERVER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: server.port
+        - name: SERVER_SERVLET_CONTEXT_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: server.servlet.context-path
+        # MongoDB
+        - name: SPRING_DATA_MONGODB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: spring.data.mongodb.host
+        - name: SPRING_DATA_MONGODB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: spring.data.mongodb.port
+        - name: SPRING_DATA_MONGODB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: spring.data.mongodb.database
+        # Redis
+        - name: REDIS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: redis.enabled
+        - name: SPRING_DATA_REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: spring.data.redis.host
+        - name: SPRING_DATA_REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: spring.data.redis.port
+        - name: SPRING_DATA_REDIS_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: spring.data.redis.timeout
+        - name: SPRING_CACHE_TYPE
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: spring.cache.type
+        - name: SPRING_CACHE_REDIS_TIME_TO_LIVE
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: spring.cache.redis.time-to-live
+        # Rate Limiting
+        - name: RATE_LIMIT_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: rate.limit.enabled
+        - name: RATE_LIMIT_REQUESTS_PER_MINUTE
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: rate.limit.requests-per-minute
+        # Logging
+        - name: LOGGING_FILE_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: logging.file.path
+        - name: LOGGING_FILE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: tmforum-openapi-config
+              key: logging.file.name
+        # Secrets
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: tmforum-openapi-secrets
+              key: jwt.secret
+        - name: JWT_EXPIRATION
+          valueFrom:
+            secretKeyRef:
+              name: tmforum-openapi-secrets
+              key: jwt.expiration
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /api/actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /api/actuator/health
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tmforum-openapi-service
+  namespace: tmforum-openapi
+spec:
+  selector:
+    app: tmforum-openapi
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: tmforum-openapi-hpa
+  namespace: tmforum-openapi
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: tmforum-openapi
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 2
+        periodSeconds: 15
+      selectPolicy: Max
+

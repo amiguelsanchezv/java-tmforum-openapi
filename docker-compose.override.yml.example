@@ -1,0 +1,31 @@
+# Sample de docker-compose.override.yml
+# Copy this file to docker-compose.override.yml to customize
+# The values here override docker-compose.yml
+
+services:
+  mongodb:
+    environment:
+      # Authentication
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-change-me}
+    # Change port with conflict
+    # ports:
+    #   - "27018:27017"
+
+  redis:
+    # Change port with conflict
+    # ports:
+    #   - "6380:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:-}
+      --maxmemory 512mb
+
+  api:
+    environment:
+      # Additional configuration
+      - JAVA_OPTS=-Xmx1g -Xms512m
+      # MongoDB with authentication:
+      # - SPRING_DATA_MONGODB_URI=mongodb://admin:password123@mongodb:27017/openapidb?authSource=admin
+
