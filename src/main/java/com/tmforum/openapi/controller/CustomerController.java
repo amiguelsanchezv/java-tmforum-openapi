@@ -32,7 +32,6 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/customer")
-@CrossOrigin(origins = "*")
 @Tag(name = "Customer", description = "TMF629 Customer Management API - Operations for Customer Resource")
 @SecurityRequirement(name = "bearerAuth")
 public class CustomerController {

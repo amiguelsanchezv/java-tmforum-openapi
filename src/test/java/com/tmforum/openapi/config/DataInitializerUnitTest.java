@@ -35,6 +35,9 @@ class DataInitializerUnitTest {
     void setUp() {
         // Configure default behavior of the passwordEncoder
         when(passwordEncoder.encode(anyString())).thenAnswer(invocation -> "encoded-" + invocation.getArgument(0));
+        org.springframework.test.util.ReflectionTestUtils.setField(dataInitializer, "readonlySecret", "secret-readonly");
+        org.springframework.test.util.ReflectionTestUtils.setField(dataInitializer, "readwriteSecret", "secret-readwrite");
+        org.springframework.test.util.ReflectionTestUtils.setField(dataInitializer, "adminSecret", "secret-admin");
     }
     
     @Test

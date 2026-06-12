@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import com.tmforum.openapi.config.SecurityConstants;
 
+import org.springframework.beans.factory.annotation.Value;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 
@@ -23,6 +24,15 @@ public class DataInitializer implements CommandLineRunner {
     
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Value("${app.readonly.secret:secret-readonly}")
+    private String readonlySecret;
+    
+    @Value("${app.readwrite.secret:secret-readwrite}")
+    private String readwriteSecret;
+    
+    @Value("${app.admin.secret:secret-admin}")
+    private String adminSecret;
     
     @Override
     public void run(String... args) throws Exception {
@@ -57,7 +67,7 @@ public class DataInitializer implements CommandLineRunner {
         if (!applicationRepository.existsByClientId("app-readonly")) {
             Application appReadOnly = new Application();
             appReadOnly.setClientId("app-readonly");
-            appReadOnly.setClientSecret(passwordEncoder.encode("secret-readonly"));
+            appReadOnly.setClientSecret(passwordEncoder.encode(readonlySecret));
             appReadOnly.setName("Read-Only Application");
             appReadOnly.setDescription("Application with read-only permissions");
             appReadOnly.setScopes(Arrays.asList(SecurityConstants.SCOPE_CUSTOMERS_READ));
@@ -71,7 +81,7 @@ public class DataInitializer implements CommandLineRunner {
         if (!applicationRepository.existsByClientId("app-readwrite")) {
             Application appReadWrite = new Application();
             appReadWrite.setClientId("app-readwrite");
-            appReadWrite.setClientSecret(passwordEncoder.encode("secret-readwrite"));
+            appReadWrite.setClientSecret(passwordEncoder.encode(readwriteSecret));
             appReadWrite.setName("Read/Write Application");
             appReadWrite.setDescription("Application with read and write permissions");
             appReadWrite.setScopes(Arrays.asList(SecurityConstants.SCOPE_CUSTOMERS_READ, SecurityConstants.SCOPE_CUSTOMERS_WRITE));
@@ -85,7 +95,7 @@ public class DataInitializer implements CommandLineRunner {
         if (!applicationRepository.existsByClientId("app-admin")) {
             Application appAdmin = new Application();
             appAdmin.setClientId("app-admin");
-            appAdmin.setClientSecret(passwordEncoder.encode("secret-admin"));
+            appAdmin.setClientSecret(passwordEncoder.encode(adminSecret));
             appAdmin.setName("Administrator Application");
             appAdmin.setDescription("Application with all permissions");
             appAdmin.setScopes(Arrays.asList(SecurityConstants.SCOPE_CUSTOMERS_READ, SecurityConstants.SCOPE_CUSTOMERS_WRITE, SecurityConstants.SCOPE_CUSTOMERS_DELETE, SecurityConstants.SCOPE_CUSTOMERS_ADMIN));
